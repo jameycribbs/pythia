@@ -19,8 +19,28 @@
         {{.Answer}} 
       </div>
     </div>
-    <p>Created At: {{.CreatedAt}}</p>
-    <p>Updated At: {{.UpdatedAt}}</p>
+    <p>Tags: {{.Tags}}</p>
+    <table class='table table-bordered table-striped'>
+      <thead>
+        <tr>
+          <th>Action</th>
+          <th>User</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Create</td>
+          <td>{{.CreatedBy}}</td>
+          <td>{{.CreatedAt}}</td>
+        </tr>
+        <tr>
+          <td>Last Update</td>
+          <td>{{.UpdatedBy}}</td>
+          <td>{{.UpdatedAt}}</td>
+        </tr>
+      </tbody>
+    </table>
     <p>Tags: {{.Tags}}</p>
     <p>
       <a class="btn btn-default" href="/edit/{{.FileId}}">Edit</a>
