@@ -1,0 +1,25 @@
+{{define "title"}}Edit Answer{{end}}
+
+{{define "body"}}
+  <div class="container">
+    <h1>Editing Answer</h1>
+    <form action="/save/{{.FileId}}" method="POST">
+        <input type="hidden" name="fileId" id="fileId" value="{{.FileId}}">
+      <div class="form-group">
+        <label for="question">Question</label>
+        <textarea autofocus class="form-control" name="question" rows="10" cols="80">{{.Question}}</textarea>
+      </div>
+      <div class="form-group">
+        <label for="answer">Answer</label>
+        <textarea class="form-control" name="answer" rows="10" cols="80">{{.Answer}}</textarea>
+      </div>
+      <div class="form-group">
+        <label for="tags">Tags</label>
+        <input type="text" class="form-control" name="tags" id="tags" value="{{.Tags}}" 
+         placeholder="Enter tags, each separated by a space...">
+      </div>
+      <button type="submit" class="btn btn-default">Submit</button>
+      <a class="btn btn-default" href="/">Back</a>
+    </form>
+  </div>
+{{end}}
