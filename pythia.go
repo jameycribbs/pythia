@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/jameycribbs/pythia/db"
-	"github.com/jameycribbs/pythia/handlers"
+	"github.com/jameycribbs/pythia/handlers/answers_handler"
 	"net/http"
 	"regexp"
 )
@@ -19,14 +19,14 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	http.HandleFunc("/index/", makeHandler(handlers.AnswerIndexHandler, myDB))
-	http.HandleFunc("/view/", makeHandler(handlers.AnswerViewHandler, myDB))
-	http.HandleFunc("/new/", makeHandler(handlers.AnswerNewHandler, myDB))
-	http.HandleFunc("/create/", makeHandler(handlers.AnswerCreateHandler, myDB))
-	http.HandleFunc("/edit/", makeHandler(handlers.AnswerEditHandler, myDB))
-	http.HandleFunc("/save/", makeHandler(handlers.AnswerSaveHandler, myDB))
-	http.HandleFunc("/delete/", makeHandler(handlers.AnswerDeleteHandler, myDB))
-	http.HandleFunc("/", makeHandler(handlers.AnswerIndexHandler, myDB))
+	http.HandleFunc("/index/", makeHandler(answers_handler.Index, myDB))
+	http.HandleFunc("/view/", makeHandler(answers_handler.View, myDB))
+	http.HandleFunc("/new/", makeHandler(answers_handler.New, myDB))
+	http.HandleFunc("/create/", makeHandler(answers_handler.Create, myDB))
+	http.HandleFunc("/edit/", makeHandler(answers_handler.Edit, myDB))
+	http.HandleFunc("/save/", makeHandler(answers_handler.Save, myDB))
+	http.HandleFunc("/delete/", makeHandler(answers_handler.Delete, myDB))
+	http.HandleFunc("/", makeHandler(answers_handler.AnswerIndex, myDB))
 
 	http.ListenAndServe(":8080", nil)
 }

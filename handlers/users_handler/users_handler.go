@@ -1,4 +1,4 @@
-package handlers
+package user_handler
 
 import (
 	"fmt"
@@ -10,17 +10,17 @@ import (
 
 type IndexData struct {
 	SearchTagsString string
-	Answers          []*db.Answer
+	Users            []*db.User
 }
 
-func AnswerIndexHandler(w http.ResponseWriter, r *http.Request, throwAway string, myDB *db.DB) {
+func Index(w http.ResponseWriter, r *http.Request, throwAway string, myDB *db.DB) {
 	var err error
 
 	indexData := IndexData{}
 
 	indexData.SearchTagsString = r.FormValue("searchTags")
 
-	indexData.Answers, err = myDB.FindAnswers(indexData.SearchTagsString)
+	indexData.Answers, err = myDB.FindUsers(indexData.SearchTagsString)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
