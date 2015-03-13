@@ -21,8 +21,8 @@ type Answer struct {
 	CreatedAt   time.Time `json:"createdat"`
 	UpdatedAt   time.Time `json:"updatedat"`
 	Tags        string    `json:"tags"`
-	CreatedBy   string
-	UpdatedBy   string
+	CreatedBy   string    `json:"createdby,omitempty"`
+	UpdatedBy   string    `json:"updatedby,omitempty"`
 }
 
 /*****************************************************************************/
@@ -81,37 +81,50 @@ func (db *DB) FindAnswer(fileId string) (*Answer, error) {
 }
 
 /*---------- SaveAnswer ----------*/
-func (db *DB) SaveAnswer(a *Answer) (string, error) {
+func (db *DB) SaveAnswer(answer *Answer) (string, error) {
 	db.answersLock.Lock()
 	defer db.answersLock.Unlock()
 
-	if a.FileId == "" {
+	if answer.FileId == "" {
 		fileId, err := db.nextAvailableAnswerFileId()
 		if err != nil {
 			return "", err
 		}
 
-		a.FileId = fileId
-		a.CreatedById = "1"
-		a.CreatedAt = time.Now()
+		answer.FileId = fileId
+
+		//TODO Temp Code!!!
+		answer.CreatedById = "1"
+		answer.CreatedAt = time.Now()
 	} else {
 		// Is fileid valid?
-		_, err := strconv.Atoi(a.FileId)
+		_, err := strconv.Atoi(answer.FileId)
 		if err != nil {
 			return "", err
 		}
+
+		originalAnswer, err := db.loadAnswer(answer.FileId)
+		if err != nil {
+			return "", err
+		}
+
+		// These fields never change after creation.
+		answer.CreatedById = originalAnswer.CreatedById
+		answer.CreatedAt = originalAnswer.CreatedAt
 	}
 
-	a.UpdatedById = "1"
-	a.UpdatedAt = time.Now()
+	//TODO Temp Code!!!
+	answer.UpdatedById = "1"
 
-	marshalledAnswer, err := json.Marshal(a)
+	answer.UpdatedAt = time.Now()
+
+	marshalledAnswer, err := json.Marshal(answer)
 
 	if err != nil {
 		return "", err
 	}
 
-	filename := fmt.Sprintf("%v/%v.json", db.answersPath, a.FileId)
+	filename := fmt.Sprintf("%v/%v.json", db.answersPath, answer.FileId)
 
 	err = ioutil.WriteFile(filename, marshalledAnswer, 0600)
 	if err != nil {
@@ -123,7 +136,7 @@ func (db *DB) SaveAnswer(a *Answer) (string, error) {
 		return "", err
 	}
 
-	return a.FileId, nil
+	return answer.FileId, nil
 }
 
 /*---------- DeleteAnswer ----------*/

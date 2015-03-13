@@ -3,7 +3,7 @@
 {{define "body"}}
   <div class="container">
     <h1>Editing Answer</h1>
-    <form action="/save/{{.FileId}}" method="POST">
+    <form action="/answer/save/{{.FileId}}" method="POST">
         <input type="hidden" name="fileId" id="fileId" value="{{.FileId}}">
       <div class="form-group">
         <label for="question">Question</label>
@@ -19,7 +19,7 @@
          placeholder="Enter tags, each separated by a space...">
       </div>
       <button type="submit" class="btn btn-default">Submit</button>
-      <a class="btn btn-default" href="/">Back</a>
+      <a class="btn btn-default" href="/answers/">Back</a>
     </form>
   </div>
 {{end}}

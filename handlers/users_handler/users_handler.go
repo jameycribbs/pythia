@@ -1,4 +1,4 @@
-package user_handler
+package users_handler
 
 import (
 	"fmt"
@@ -8,50 +8,39 @@ import (
 	"path"
 )
 
-type IndexData struct {
-	SearchTagsString string
-	Users            []*db.User
-}
-
 func Index(w http.ResponseWriter, r *http.Request, throwAway string, myDB *db.DB) {
-	var err error
-
-	indexData := IndexData{}
-
-	indexData.SearchTagsString = r.FormValue("searchTags")
-
-	indexData.Answers, err = myDB.FindUsers(indexData.SearchTagsString)
+	users, err := myDB.FindUsers()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	lp := path.Join("tmpl", "layout.html")
-	fp := path.Join("tmpl", "index.html")
+	lp := path.Join("templates", "answers", "layout.html")
+	fp := path.Join("templates", "answers", "index.html")
 
 	tmpl, _ := template.ParseFiles(lp, fp)
-	err = tmpl.ExecuteTemplate(w, "layout", indexData)
+	err = tmpl.ExecuteTemplate(w, "layout", users)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
-func AnswerViewHandler(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
-	a, err := myDB.FindAnswer(fileId)
+func View(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
+	user, err := myDB.FindUser(fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	renderTemplate(w, "view", a)
+	renderTemplate(w, "view", user)
 }
 
-func AnswerNewHandler(w http.ResponseWriter, r *http.Request, throwaway string, myDB *db.DB) {
+func New(w http.ResponseWriter, r *http.Request, throwaway string, myDB *db.DB) {
 	renderTemplate(w, "new", nil)
 }
 
-func AnswerCreateHandler(w http.ResponseWriter, r *http.Request, throwaway string, myDB *db.DB) {
+func Create(w http.ResponseWriter, r *http.Request, throwaway string, myDB *db.DB) {
 	fileId, err := saveFormDataToDb(myDB, "", r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -61,17 +50,17 @@ func AnswerCreateHandler(w http.ResponseWriter, r *http.Request, throwaway strin
 	http.Redirect(w, r, fmt.Sprintf("/view/%v", fileId), http.StatusFound)
 }
 
-func AnswerEditHandler(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
-	a, err := myDB.FindAnswer(fileId)
+func Edit(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
+	user, err := myDB.FindUser(fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	renderTemplate(w, "edit", a)
+	renderTemplate(w, "edit", user)
 }
 
-func AnswerSaveHandler(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
+func Save(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
 	_, err := saveFormDataToDb(myDB, fileId, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -81,8 +70,8 @@ func AnswerSaveHandler(w http.ResponseWriter, r *http.Request, fileId string, my
 	http.Redirect(w, r, fmt.Sprintf("/view/%v", fileId), http.StatusFound)
 }
 
-func AnswerDeleteHandler(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
-	err := myDB.DeleteAnswer(fileId)
+func Delete(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
+	err := myDB.DeleteUser(fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -94,12 +83,12 @@ func AnswerDeleteHandler(w http.ResponseWriter, r *http.Request, fileId string, 
 //=============================================================================
 // Helper Functions
 //=============================================================================
-func renderTemplate(w http.ResponseWriter, templateName string, a *db.Answer) {
-	lp := path.Join("tmpl", "layout.html")
-	fp := path.Join("tmpl", templateName+".html")
+func renderTemplate(w http.ResponseWriter, templateName string, user *db.User) {
+	lp := path.Join("templates", "users", "layout.html")
+	fp := path.Join("templates", "users", templateName+".html")
 
 	tmpl, _ := template.ParseFiles(lp, fp)
-	err := tmpl.ExecuteTemplate(w, "layout", a)
+	err := tmpl.ExecuteTemplate(w, "layout", user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -107,13 +96,13 @@ func renderTemplate(w http.ResponseWriter, templateName string, a *db.Answer) {
 }
 
 func saveFormDataToDb(myDB *db.DB, fileId string, r *http.Request) (string, error) {
-	question := r.FormValue("question")
-	answer := r.FormValue("answer")
-	tags := r.FormValue("tags")
+	name := r.FormValue("name")
+	login := r.FormValue("login")
+	password := r.FormValue("password")
 
-	a := &db.Answer{FileId: fileId, Question: question, Answer: answer, Tags: tags}
+	user := &db.User{FileId: fileId, Name: name, Login: login, Password: password}
 
-	returnedFileId, err := myDB.SaveAnswer(a)
+	returnedFileId, err := myDB.SaveUser(user)
 	if err != nil {
 		return "", err
 	}

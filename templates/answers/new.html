@@ -3,7 +3,7 @@
 {{define "body"}}
   <div class="container">
     <h1>New Answer</h1>
-    <form action="/create/" method="POST">
+    <form action="/answer/create/" method="POST">
       <div class="form-group">
         <label for="question">Question</label>
         <textarea autofocus class="form-control" name="question" rows="10" cols="80"></textarea>
@@ -17,7 +17,7 @@
         <input type="text" class="form-control" name="tags" id="tags" placeholder="Enter tags, each separated by a space...">
       </div>
       <button type="submit" class="btn btn-default">Submit</button>
-      <a class="btn btn-default" href="/">Back</a>
+      <a class="btn btn-default" href="/answers/">Back</a>
     </form>
   </div>
 {{end}}

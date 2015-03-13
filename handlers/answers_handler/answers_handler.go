@@ -26,8 +26,8 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, myDB *db.DB
 		return
 	}
 
-	lp := path.Join("tmpl", "layout.html")
-	fp := path.Join("tmpl", "index.html")
+	lp := path.Join("templates", "layouts", "layout.html")
+	fp := path.Join("templates", "answers", "index.html")
 
 	tmpl, _ := template.ParseFiles(lp, fp)
 	err = tmpl.ExecuteTemplate(w, "layout", indexData)
@@ -38,13 +38,13 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, myDB *db.DB
 }
 
 func View(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
-	a, err := myDB.FindAnswer(fileId)
+	rec, err := myDB.FindAnswer(fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	renderTemplate(w, "view", a)
+	renderTemplate(w, "view", rec)
 }
 
 func New(w http.ResponseWriter, r *http.Request, throwaway string, myDB *db.DB) {
@@ -58,17 +58,17 @@ func Create(w http.ResponseWriter, r *http.Request, throwaway string, myDB *db.D
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/view/%v", fileId), http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("/answer/view/%v", fileId), http.StatusFound)
 }
 
 func Edit(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
-	a, err := myDB.FindAnswer(fileId)
+	rec, err := myDB.FindAnswer(fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	renderTemplate(w, "edit", a)
+	renderTemplate(w, "edit", rec)
 }
 
 func Save(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
@@ -78,7 +78,7 @@ func Save(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/view/%v", fileId), http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("/answer/view/%v", fileId), http.StatusFound)
 }
 
 func Delete(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
@@ -88,18 +88,18 @@ func Delete(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) 
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusFound)
+	http.Redirect(w, r, "/answers", http.StatusFound)
 }
 
 //=============================================================================
 // Helper Functions
 //=============================================================================
-func renderTemplate(w http.ResponseWriter, templateName string, a *db.Answer) {
+func renderTemplate(w http.ResponseWriter, templateName string, rec *db.Answer) {
 	lp := path.Join("templates", "layouts", "layout.html")
 	fp := path.Join("templates", "answers", templateName+".html")
 
 	tmpl, _ := template.ParseFiles(lp, fp)
-	err := tmpl.ExecuteTemplate(w, "layout", a)
+	err := tmpl.ExecuteTemplate(w, "layout", rec)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -111,9 +111,9 @@ func saveFormDataToDb(myDB *db.DB, fileId string, r *http.Request) (string, erro
 	answer := r.FormValue("answer")
 	tags := r.FormValue("tags")
 
-	a := &db.Answer{FileId: fileId, Question: question, Answer: answer, Tags: tags}
+	rec := &db.Answer{FileId: fileId, Question: question, Answer: answer, Tags: tags}
 
-	returnedFileId, err := myDB.SaveAnswer(a)
+	returnedFileId, err := myDB.SaveAnswer(rec)
 	if err != nil {
 		return "", err
 	}
