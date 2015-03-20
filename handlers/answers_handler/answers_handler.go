@@ -3,24 +3,35 @@ package answers_handler
 import (
 	"fmt"
 	"github.com/jameycribbs/pythia/db"
+	"github.com/jameycribbs/pythia/global_vars"
 	"html/template"
 	"net/http"
 	"path"
 )
 
-type IndexData struct {
-	SearchTagsString string
-	Answers          []*db.Answer
+type IndexTemplateData struct {
+	SearchTagsString  string
+	Answers           []*db.Answer
+	CurrentUser       *db.User
+	DontShowLoginLink bool
 }
 
-func Index(w http.ResponseWriter, r *http.Request, throwAway string, myDB *db.DB) {
+type TemplateData struct {
+	Rec               *db.Answer
+	CurrentUser       *db.User
+	DontShowLoginLink bool
+}
+
+func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_vars.GlobalVars, currentUser *db.User) {
 	var err error
 
-	indexData := IndexData{}
+	templateData := IndexTemplateData{}
 
-	indexData.SearchTagsString = r.FormValue("searchTags")
+	templateData.CurrentUser = currentUser
 
-	indexData.Answers, err = myDB.FindAnswers(indexData.SearchTagsString)
+	templateData.SearchTagsString = r.FormValue("searchTags")
+
+	templateData.Answers, err = gv.MyDB.FindAnswers(templateData.SearchTagsString)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -30,59 +41,79 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, myDB *db.DB
 	fp := path.Join("templates", "answers", "index.html")
 
 	tmpl, _ := template.ParseFiles(lp, fp)
-	err = tmpl.ExecuteTemplate(w, "layout", indexData)
+	err = tmpl.ExecuteTemplate(w, "layout", templateData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
-func View(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
-	rec, err := myDB.FindAnswer(fileId)
+func View(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	rec, err := gv.MyDB.FindAnswer(fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	renderTemplate(w, "view", rec)
+	templateData := TemplateData{CurrentUser: currentUser, Rec: rec}
+
+	renderTemplate(w, "view", &templateData)
 }
 
-func New(w http.ResponseWriter, r *http.Request, throwaway string, myDB *db.DB) {
-	renderTemplate(w, "new", nil)
+func New(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	templateData := TemplateData{CurrentUser: currentUser}
+
+	renderTemplate(w, "new", &templateData)
 }
 
-func Create(w http.ResponseWriter, r *http.Request, throwaway string, myDB *db.DB) {
-	fileId, err := saveFormDataToDb(myDB, "", r)
+func Create(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	fileId, err := saveFormDataToDb(gv.MyDB, "", r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/answer/view/%v", fileId), http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("/answers/%v", fileId), http.StatusFound)
 }
 
-func Edit(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
-	rec, err := myDB.FindAnswer(fileId)
+func Edit(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	rec, err := gv.MyDB.FindAnswer(fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	renderTemplate(w, "edit", rec)
+	templateData := TemplateData{CurrentUser: currentUser, Rec: rec}
+	renderTemplate(w, "edit", &templateData)
 }
 
-func Save(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
-	_, err := saveFormDataToDb(myDB, fileId, r)
+func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	fileId := r.FormValue("fileId")
+
+	_, err := saveFormDataToDb(gv.MyDB, fileId, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/answer/view/%v", fileId), http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("/answers/%v", fileId), http.StatusFound)
 }
 
-func Delete(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) {
-	err := myDB.DeleteAnswer(fileId)
+func Delete(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	rec, err := gv.MyDB.FindAnswer(fileId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	templateData := TemplateData{CurrentUser: currentUser, Rec: rec}
+	renderTemplate(w, "delete", &templateData)
+}
+
+func Destroy(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	fileId := r.FormValue("fileId")
+
+	err := gv.MyDB.DeleteAnswer(fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -94,12 +125,12 @@ func Delete(w http.ResponseWriter, r *http.Request, fileId string, myDB *db.DB) 
 //=============================================================================
 // Helper Functions
 //=============================================================================
-func renderTemplate(w http.ResponseWriter, templateName string, rec *db.Answer) {
+func renderTemplate(w http.ResponseWriter, templateName string, templateData *TemplateData) {
 	lp := path.Join("templates", "layouts", "layout.html")
 	fp := path.Join("templates", "answers", templateName+".html")
 
 	tmpl, _ := template.ParseFiles(lp, fp)
-	err := tmpl.ExecuteTemplate(w, "layout", rec)
+	err := tmpl.ExecuteTemplate(w, "layout", templateData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

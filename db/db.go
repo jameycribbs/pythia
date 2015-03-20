@@ -12,6 +12,7 @@ type DB struct {
 	usersPath       string
 	usersLock       *sync.RWMutex
 	answerTagsIndex map[string][]string
+	userLoginsIndex map[string]string
 }
 
 func OpenDB(dbPath string) (*DB, error) {
@@ -37,6 +38,16 @@ func OpenDB(dbPath string) (*DB, error) {
 	db.answerTagsIndex = make(map[string][]string)
 
 	err = db.initAnswerTagsIndex()
+	if err != nil {
+		return nil, err
+	}
+
+	db.userLoginsIndex = make(map[string]string)
+
+	err = db.initUserLoginsIndex()
+	if err != nil {
+		return nil, err
+	}
 
 	return db, err
 }

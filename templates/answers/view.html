@@ -1,50 +1,48 @@
-{{define "title"}}View Answer{{end}}
+{{define "title"}}Pythia{{end}}
 
 {{define "body"}}
-  <div class="container">
-    <h1>Viewing Answer</h1>
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h3 class="panel-title">Question</h3>
-      </div>
-      <div class="panel-body">
-        {{.Question}} 
-      </div>
+  <h1>Viewing Answer</h1>
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h3 class="panel-title">Question</h3>
     </div>
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h3 class="panel-title">Answer</h3>
-      </div>
-      <div class="panel-body">
-        {{.Answer}} 
-      </div>
+    <div class="panel-body">
+      {{.Rec.Question}} 
     </div>
-    <p>Tags: {{.Tags}}</p>
-    <table class='table table-bordered table-striped'>
-      <thead>
-        <tr>
-          <th>Action</th>
-          <th>User</th>
-          <th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Create</td>
-          <td>{{.CreatedBy}}</td>
-          <td>{{.CreatedAt}}</td>
-        </tr>
-        <tr>
-          <td>Last Update</td>
-          <td>{{.UpdatedBy}}</td>
-          <td>{{.UpdatedAt}}</td>
-        </tr>
-      </tbody>
-    </table>
-    <p>Tags: {{.Tags}}</p>
-    <p>
-      <a class="btn btn-default" href="/answer/edit/{{.FileId}}">Edit</a>
-      <a class="btn btn-default" href="/answers/">Back</a>
-    </p>
   </div>
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h3 class="panel-title">Answer</h3>
+    </div>
+    <div class="panel-body">
+      {{.Rec.Answer}} 
+    </div>
+  </div>
+  <p>Tags: {{.Rec.Tags}}</p>
+  <table class='table table-bordered table-striped'>
+    <thead>
+      <tr>
+        <th>Action</th>
+        <th>User</th>
+        <th>Timestamp</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Create</td>
+        <td>{{.Rec.CreatedBy}}</td>
+        <td>{{.Rec.CreatedAt}}</td>
+      </tr>
+      <tr>
+        <td>Last Update</td>
+        <td>{{.Rec.UpdatedBy}}</td>
+        <td>{{.Rec.UpdatedAt}}</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Tags: {{.Rec.Tags}}</p>
+  <p>
+    <a class="btn btn-default" href="/answers/edit/{{.Rec.FileId}}">Edit</a>
+    <a class="btn btn-default" href="/answers">Back</a>
+  </p>
 {{end}}

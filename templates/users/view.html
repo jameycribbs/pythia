@@ -1,0 +1,13 @@
+{{define "title"}}Pythia{{end}}
+
+{{define "body"}}
+  <h1>Viewing User</h1>
+  <div class="well">
+    <p>Name: {{.Rec.Name}}</p>
+    <p>Login: {{.Rec.Login}}</p>
+  </div>
+  <p>
+    <a class="btn btn-default" href="/users/edit/{{.Rec.FileId}}">Edit</a>
+    <a class="btn btn-default" href="/users">Back</a>
+  </p>
+{{end}}

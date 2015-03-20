@@ -2,50 +2,89 @@ package main
 
 import (
 	"fmt"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 	"github.com/jameycribbs/pythia/db"
+	"github.com/jameycribbs/pythia/global_vars"
 	"github.com/jameycribbs/pythia/handlers/answers_handler"
+	"github.com/jameycribbs/pythia/handlers/logins_handler"
 	"github.com/jameycribbs/pythia/handlers/users_handler"
 	"net/http"
-	"regexp"
 )
 
-var validPath = regexp.MustCompile("^/(answers/|answer|users|user/)*(new|create|edit|save|delete|view|index)*/*([a-zA-Z0-9]*)$")
-
 func main() {
-	myDB, err := db.OpenDB("data")
+	db, err := db.OpenDB("data")
 	if err != nil {
 		fmt.Println("Database initialization failed:", err)
 	}
 
+	store := sessions.NewCookieStore([]byte("pythia-is-awesome"))
+
+	gv := global_vars.GlobalVars{MyDB: db, SessionStore: store}
+
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	http.HandleFunc("/answers/", makeHandler(answers_handler.Index, myDB))
-	http.HandleFunc("/answer/view/", makeHandler(answers_handler.View, myDB))
-	http.HandleFunc("/answer/new/", makeHandler(answers_handler.New, myDB))
-	http.HandleFunc("/answer/create/", makeHandler(answers_handler.Create, myDB))
-	http.HandleFunc("/answer/edit/", makeHandler(answers_handler.Edit, myDB))
-	http.HandleFunc("/answer/save/", makeHandler(answers_handler.Save, myDB))
-	http.HandleFunc("/answer/delete/", makeHandler(answers_handler.Delete, myDB))
-	http.HandleFunc("/users/", makeHandler(users_handler.Index, myDB))
-	http.HandleFunc("/user/view/", makeHandler(users_handler.View, myDB))
-	http.HandleFunc("/user/new/", makeHandler(users_handler.New, myDB))
-	http.HandleFunc("/user/create/", makeHandler(users_handler.Create, myDB))
-	http.HandleFunc("/user/edit/", makeHandler(users_handler.Edit, myDB))
-	http.HandleFunc("/user/save/", makeHandler(users_handler.Save, myDB))
-	http.HandleFunc("/user/delete/", makeHandler(users_handler.Delete, myDB))
-	http.HandleFunc("/", makeHandler(answers_handler.Index, myDB))
+	r := mux.NewRouter()
+	r.HandleFunc("/", makeHandler(answers_handler.Index, &gv)).Methods("GET")
+
+	r.HandleFunc("/answers", makeHandler(answers_handler.Index, &gv)).Methods("GET")
+	r.HandleFunc("/answers/search", makeHandler(answers_handler.Index, &gv)).Methods("POST")
+	r.HandleFunc("/answers/{id:[0-9]+}", makeHandler(answers_handler.View, &gv)).Methods("GET")
+	r.HandleFunc("/answers/new", makeHandler(answers_handler.New, &gv)).Methods("GET")
+	r.HandleFunc("/answers/create", makeHandler(answers_handler.Create, &gv)).Methods("POST")
+	r.HandleFunc("/answers/edit/{id:[0-9]+}", makeHandler(answers_handler.Edit, &gv)).Methods("GET")
+	r.HandleFunc("/answers/update", makeHandler(answers_handler.Update, &gv)).Methods("POST")
+	r.HandleFunc("/answers/delete/{id:[0-9]+}", makeHandler(answers_handler.Delete, &gv)).Methods("GET")
+	r.HandleFunc("/answers/destroy", makeHandler(answers_handler.Destroy, &gv)).Methods("POST")
+
+	r.HandleFunc("/users", makeHandler(users_handler.Index, &gv)).Methods("GET")
+	r.HandleFunc("/users/{id:[0-9]+}", makeHandler(users_handler.View, &gv)).Methods("GET")
+	r.HandleFunc("/users/new", makeHandler(users_handler.New, &gv)).Methods("GET")
+	r.HandleFunc("/users/create", makeHandler(users_handler.Create, &gv)).Methods("POST")
+	r.HandleFunc("/users/edit/{id:[0-9]+}", makeHandler(users_handler.Edit, &gv)).Methods("GET")
+	r.HandleFunc("/users/update", makeHandler(users_handler.Update, &gv)).Methods("POST")
+	r.HandleFunc("/users/delete/{id:[0-9]+}", makeHandler(users_handler.Delete, &gv)).Methods("GET")
+	r.HandleFunc("/users/destroy", makeHandler(users_handler.Destroy, &gv)).Methods("POST")
+
+	r.HandleFunc("/logins/new", makeHandler(logins_handler.New, &gv)).Methods("GET")
+	r.HandleFunc("/logins/create", makeHandler(logins_handler.Create, &gv)).Methods("POST")
+	r.HandleFunc("/logout", makeHandler(logins_handler.Logout, &gv)).Methods("GET")
+
+	http.Handle("/", r)
 
 	http.ListenAndServe(":8080", nil)
 }
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, string, *db.DB), myDB *db.DB) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request, string, *global_vars.GlobalVars, *db.User),
+	gv *global_vars.GlobalVars) http.HandlerFunc {
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		urlParts := validPath.FindStringSubmatch(r.URL.Path)
-		if urlParts == nil {
-			http.NotFound(w, r)
+		currentUser, err := getCurrentUser(r, gv)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fn(w, r, urlParts[3], myDB)
+
+		vars := mux.Vars(r)
+
+		fn(w, r, vars["id"], gv, currentUser)
 	}
+}
+
+func getCurrentUser(r *http.Request, gv *global_vars.GlobalVars) (*db.User, error) {
+	session, _ := gv.SessionStore.Get(r, "pythia")
+
+	userId, ok := session.Values["user"]
+
+	if !ok {
+		return nil, nil
+	}
+
+	user, err := gv.MyDB.FindUser(userId.(string))
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
