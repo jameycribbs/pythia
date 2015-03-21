@@ -9,6 +9,7 @@ import (
 	"github.com/jameycribbs/pythia/handlers/answers_handler"
 	"github.com/jameycribbs/pythia/handlers/logins_handler"
 	"github.com/jameycribbs/pythia/handlers/users_handler"
+	"github.com/justinas/nosurf"
 	"net/http"
 )
 
@@ -53,7 +54,16 @@ func main() {
 
 	http.Handle("/", r)
 
-	http.ListenAndServe(":8080", nil)
+	csrfHandler := nosurf.New(http.DefaultServeMux)
+
+	csrfHandler.SetFailureHandler(http.HandlerFunc(failHand))
+
+	http.ListenAndServe(":8080", csrfHandler)
+}
+
+func failHand(w http.ResponseWriter, r *http.Request) {
+	// will return the reason of the failure
+	fmt.Fprintf(w, "%s\n", nosurf.Reason(r))
 }
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, string, *global_vars.GlobalVars, *db.User),

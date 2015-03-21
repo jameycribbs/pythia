@@ -4,6 +4,7 @@
   <h1>Pythia</h1>
   <p>
     <form class="form-inline" action="/answers/search" method="POST">
+      <input type="hidden" name="csrf_token" value="{{ .CsrfToken }}">
       <div class="form-group">
         <input type="text" autofocus class="form-control" id="searchTags" name="searchTags" value="{{.SearchTagsString}}" 
          placeholder="Enter tags to search for...">
@@ -39,8 +40,10 @@
       {{end}}
     </tbody>
   </table>
-  <a class="btn btn-default" href="/answers/new">New Answer</a>
   {{ with .CurrentUser }}
+    <a class="btn btn-default" href="/answers/new">New Answer</a>
+  {{ end }}
+  {{ if .CurrentUserAdmin }}
     <a class="btn btn-default" href="/users">Users</a>
   {{ end }}
 {{end}}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/jameycribbs/pythia/db"
 	"github.com/jameycribbs/pythia/global_vars"
+	"github.com/justinas/nosurf"
 	"html/template"
 	"net/http"
 	"path"
@@ -18,9 +19,15 @@ type TemplateData struct {
 	Rec               *db.User
 	CurrentUser       *db.User
 	DontShowLoginLink bool
+	CsrfToken         string
 }
 
 func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	if (currentUser == nil) || (currentUser.Level != "admin") {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
 	var err error
 
 	templateData := IndexTemplateData{}
@@ -45,6 +52,11 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 }
 
 func View(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	if (currentUser == nil) || (currentUser.Level != "admin") {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
 	rec, err := gv.MyDB.FindUser(fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -57,12 +69,22 @@ func View(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars
 }
 
 func New(w http.ResponseWriter, r *http.Request, throwaway string, sv *global_vars.GlobalVars, currentUser *db.User) {
-	templateData := TemplateData{CurrentUser: currentUser}
+	if (currentUser == nil) || (currentUser.Level != "admin") {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	templateData := TemplateData{CurrentUser: currentUser, CsrfToken: nosurf.Token(r)}
 
 	renderTemplate(w, "new", &templateData)
 }
 
 func Create(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	if (currentUser == nil) || (currentUser.Level != "admin") {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
 	fileId, err := saveFormDataToDb(gv.MyDB, "", r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -73,18 +95,28 @@ func Create(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 }
 
 func Edit(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	if (currentUser == nil) || (currentUser.Level != "admin") {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
 	rec, err := gv.MyDB.FindUser(fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	templateData := TemplateData{CurrentUser: currentUser, Rec: rec}
+	templateData := TemplateData{CurrentUser: currentUser, Rec: rec, CsrfToken: nosurf.Token(r)}
 
 	renderTemplate(w, "edit", &templateData)
 }
 
 func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	if (currentUser == nil) || (currentUser.Level != "admin") {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
 	fileId := r.FormValue("fileId")
 
 	_, err := saveFormDataToDb(gv.MyDB, fileId, r)
@@ -97,18 +129,28 @@ func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 }
 
 func Delete(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	if (currentUser == nil) || (currentUser.Level != "admin") {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
 	rec, err := gv.MyDB.FindUser(fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	templateData := TemplateData{CurrentUser: currentUser, Rec: rec}
+	templateData := TemplateData{CurrentUser: currentUser, Rec: rec, CsrfToken: nosurf.Token(r)}
 
 	renderTemplate(w, "delete", &templateData)
 }
 
 func Destroy(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	if (currentUser == nil) || (currentUser.Level != "admin") {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
 	fileId := r.FormValue("fileId")
 
 	err := gv.MyDB.DeleteUser(fileId)
@@ -139,8 +181,9 @@ func saveFormDataToDb(myDB *db.DB, fileId string, r *http.Request) (string, erro
 	name := r.FormValue("name")
 	login := r.FormValue("login")
 	password := r.FormValue("password")
+	level := r.FormValue("level")
 
-	rec := &db.User{FileId: fileId, Name: name, Login: login, Password: []byte(password)}
+	rec := &db.User{FileId: fileId, Name: name, Login: login, Password: []byte(password), Level: level}
 
 	returnedFileId, err := myDB.SaveUser(rec)
 	if err != nil {

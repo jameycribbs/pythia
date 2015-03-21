@@ -3,6 +3,7 @@
 {{define "body"}}
   <h1>New Answer</h1>
   <form action="/answers/create" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ .CsrfToken }}">
     <div class="form-group">
       <label for="question">Question</label>
       <textarea autofocus class="form-control" name="question" rows="10" cols="80"></textarea>

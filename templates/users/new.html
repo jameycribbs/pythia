@@ -3,6 +3,7 @@
 {{define "body"}}
   <h1>New User</h1>
   <form action="/users/create" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ .CsrfToken }}">
     <div class="row">
       <div class="form-group col-xs-5">
         <label for="name">Name</label>
@@ -13,6 +14,12 @@
       <div class="form-group col-xs-5">
         <label for="login">Login</label>
         <input type="text" class="form-control" name="login" id="login">
+      </div>
+    </div>
+    <div class="row">
+      <div class="form-group col-xs-5">
+        <label for="level">Login</label>
+        <input type="text" class="form-control" name="level" id="level">
       </div>
     </div>
     <div class="row">

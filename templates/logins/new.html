@@ -6,6 +6,7 @@
     <div class="alert alert-danger" role="alert">{{.}}</div> 
   {{ end }}
   <form action="/logins/create" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ .CsrfToken }}">
     <div class="row">
       <div class="form-group col-xs-4">
         <label for="login">Login</label>

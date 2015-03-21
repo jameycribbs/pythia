@@ -17,6 +17,7 @@ type User struct {
 	Name     string `json:"name"`
 	Login    string `json:"login"`
 	Password []byte `json:"password"`
+	Level    string `json:"level"`
 }
 
 /*****************************************************************************/
@@ -75,6 +76,9 @@ func (db *DB) LoginUser(login string, password string) (*User, error) {
 
 /*---------- SaveUser ----------*/
 func (db *DB) SaveUser(user *User) (string, error) {
+	var updatingExistingUser bool
+	var oldUser *User
+
 	db.usersLock.Lock()
 	defer db.usersLock.Unlock()
 
@@ -85,20 +89,35 @@ func (db *DB) SaveUser(user *User) (string, error) {
 		}
 
 		user.FileId = fileId
+
+		updatingExistingUser = false
 	} else {
 		// Is fileid valid?
 		_, err := strconv.Atoi(user.FileId)
 		if err != nil {
 			return "", err
 		}
+
+		oldUser, err = db.loadUser(user.FileId)
+		if err != nil {
+			return "", err
+		}
+
+		updatingExistingUser = true
 	}
 
-	cryptedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
+	if len(user.Password) > 0 {
+		cryptedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return "", err
+		}
 
-	user.Password = cryptedPassword
+		user.Password = cryptedPassword
+	} else {
+		if updatingExistingUser {
+			user.Password = oldUser.Password
+		}
+	}
 
 	marshalledAnswer, err := json.Marshal(user)
 

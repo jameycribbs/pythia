@@ -3,8 +3,9 @@
 {{define "body"}}
   <h1>Deleting User</h1>
   <form action="/users/destroy" method="POST">
-      <input type="hidden" name="fileId" id="fileId" value="{{.Rec.FileId}}">
-      <div class="alert alert-danger" role="alert">Are you sure you want to delete this user?</div>
+    <input type="hidden" name="csrf_token" value="{{ .CsrfToken }}">
+    <input type="hidden" name="fileId" id="fileId" value="{{.Rec.FileId}}">
+    <div class="alert alert-danger" role="alert">Are you sure you want to delete this user?</div>
     <button type="submit" class="btn btn-default">Delete</button>
     <a class="btn btn-default" href="/users">Back</a>
   </form>

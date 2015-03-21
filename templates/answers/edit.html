@@ -3,7 +3,8 @@
 {{define "body"}}
   <h1>Editing Answer</h1>
   <form action="/answers/update" method="POST">
-      <input type="hidden" name="fileId" id="fileId" value="{{.Rec.FileId}}">
+    <input type="hidden" name="csrf_token" value="{{ .CsrfToken }}">
+    <input type="hidden" name="fileId" id="fileId" value="{{.Rec.FileId}}">
     <div class="form-group">
       <label for="question">Question</label>
       <textarea autofocus class="form-control" name="question" rows="10" cols="80">{{.Rec.Question}}</textarea>

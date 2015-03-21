@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/jameycribbs/pythia/db"
 	"github.com/jameycribbs/pythia/global_vars"
+	"github.com/justinas/nosurf"
 	"html/template"
 	"net/http"
 	"path"
@@ -14,12 +15,15 @@ type IndexTemplateData struct {
 	Answers           []*db.Answer
 	CurrentUser       *db.User
 	DontShowLoginLink bool
+	CurrentUserAdmin  bool
+	CsrfToken         string
 }
 
 type TemplateData struct {
 	Rec               *db.Answer
 	CurrentUser       *db.User
 	DontShowLoginLink bool
+	CsrfToken         string
 }
 
 func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_vars.GlobalVars, currentUser *db.User) {
@@ -29,6 +33,12 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 
 	templateData.CurrentUser = currentUser
 
+	if (currentUser != nil) && (currentUser.Level == "admin") {
+		templateData.CurrentUserAdmin = true
+	} else {
+		templateData.CurrentUserAdmin = false
+	}
+
 	templateData.SearchTagsString = r.FormValue("searchTags")
 
 	templateData.Answers, err = gv.MyDB.FindAnswers(templateData.SearchTagsString)
@@ -36,6 +46,8 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	templateData.CsrfToken = nosurf.Token(r)
 
 	lp := path.Join("templates", "layouts", "layout.html")
 	fp := path.Join("templates", "answers", "index.html")
@@ -61,12 +73,22 @@ func View(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars
 }
 
 func New(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
-	templateData := TemplateData{CurrentUser: currentUser}
+	if currentUser == nil {
+		http.Redirect(w, r, "/answers", http.StatusFound)
+		return
+	}
+
+	templateData := TemplateData{CurrentUser: currentUser, CsrfToken: nosurf.Token(r)}
 
 	renderTemplate(w, "new", &templateData)
 }
 
 func Create(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	if currentUser == nil {
+		http.Redirect(w, r, "/answers", http.StatusFound)
+		return
+	}
+
 	fileId, err := saveFormDataToDb(gv.MyDB, "", r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -77,17 +99,27 @@ func Create(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 }
 
 func Edit(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	if currentUser == nil {
+		http.Redirect(w, r, "/answers", http.StatusFound)
+		return
+	}
+
 	rec, err := gv.MyDB.FindAnswer(fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	templateData := TemplateData{CurrentUser: currentUser, Rec: rec}
+	templateData := TemplateData{CurrentUser: currentUser, Rec: rec, CsrfToken: nosurf.Token(r)}
 	renderTemplate(w, "edit", &templateData)
 }
 
 func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	if currentUser == nil {
+		http.Redirect(w, r, "/answers", http.StatusFound)
+		return
+	}
+
 	fileId := r.FormValue("fileId")
 
 	_, err := saveFormDataToDb(gv.MyDB, fileId, r)
@@ -100,17 +132,27 @@ func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 }
 
 func Delete(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	if currentUser == nil {
+		http.Redirect(w, r, "/answers", http.StatusFound)
+		return
+	}
+
 	rec, err := gv.MyDB.FindAnswer(fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	templateData := TemplateData{CurrentUser: currentUser, Rec: rec}
+	templateData := TemplateData{CurrentUser: currentUser, Rec: rec, CsrfToken: nosurf.Token(r)}
 	renderTemplate(w, "delete", &templateData)
 }
 
 func Destroy(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+	if currentUser == nil {
+		http.Redirect(w, r, "/answers", http.StatusFound)
+		return
+	}
+
 	fileId := r.FormValue("fileId")
 
 	err := gv.MyDB.DeleteAnswer(fileId)
