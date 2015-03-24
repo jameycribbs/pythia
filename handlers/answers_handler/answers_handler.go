@@ -29,6 +29,15 @@ type TemplateData struct {
 func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_vars.GlobalVars, currentUser *db.User) {
 	var err error
 
+	funcMap := template.FuncMap{
+		"panelClass": func(i int) string {
+			if i == 0 {
+				return "collapse in"
+			} else {
+				return "collapse"
+			}
+		}}
+
 	templateData := IndexTemplateData{}
 
 	templateData.CurrentUser = currentUser
@@ -39,12 +48,14 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 		templateData.CurrentUserAdmin = false
 	}
 
-	templateData.SearchTagsString = r.FormValue("searchTags")
+	if r.FormValue("searchTags") != "" {
+		templateData.SearchTagsString = r.FormValue("searchTags")
 
-	templateData.Answers, err = gv.MyDB.FindAnswers(templateData.SearchTagsString)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		templateData.Answers, err = gv.MyDB.FindAnswers(templateData.SearchTagsString)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	templateData.CsrfToken = nosurf.Token(r)
@@ -52,7 +63,14 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 	lp := path.Join("templates", "layouts", "layout.html")
 	fp := path.Join("templates", "answers", "index.html")
 
-	tmpl, _ := template.ParseFiles(lp, fp)
+	tmpl := template.New("idx").Funcs(funcMap)
+
+	tmpl, err = tmpl.ParseFiles(lp, fp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	err = tmpl.ExecuteTemplate(w, "layout", templateData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

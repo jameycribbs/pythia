@@ -11,9 +11,23 @@ import (
 	"github.com/jameycribbs/pythia/handlers/users_handler"
 	"github.com/justinas/nosurf"
 	"net/http"
+	"os"
 )
 
 func main() {
+	var port string
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		fmt.Println("Error getting hostname:", err)
+	}
+
+	if hostname == "pythia" {
+		port = ":80"
+	} else {
+		port = ":8080"
+	}
+
 	db, err := db.OpenDB("data")
 	if err != nil {
 		fmt.Println("Database initialization failed:", err)
@@ -58,7 +72,7 @@ func main() {
 
 	csrfHandler.SetFailureHandler(http.HandlerFunc(failHand))
 
-	http.ListenAndServe(":8080", csrfHandler)
+	http.ListenAndServe(port, csrfHandler)
 }
 
 func failHand(w http.ResponseWriter, r *http.Request) {

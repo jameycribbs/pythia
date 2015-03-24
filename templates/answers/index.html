@@ -6,45 +6,59 @@
     <form class="form-inline" action="/answers/search" method="POST">
       <input type="hidden" name="csrf_token" value="{{ .CsrfToken }}">
       <div class="form-group">
-        <input type="text" autofocus class="form-control" id="searchTags" name="searchTags" value="{{.SearchTagsString}}" 
+        <input type="text" class="form-control" id="searchTags" name="searchTags" value="{{.SearchTagsString}}" 
          placeholder="Enter tags to search for...">
       </div>
       <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-search" aria-hidden="true"></span>&nbsp;Search</button>
       <a class="btn btn-default" href="/answers"><span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>&nbsp;Clear Filter</a>
     </form>
   </p>
-  <table class="table table-striped table-bordered">
-    <thead>
-      <tr>
-        <th>Question</th>
-        <th>Answer</th>
-        <th>Tags</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{range .Answers}}
-        <tr>
-          <td><a href="/answers/{{.FileId}}" title="View Answer">{{.Question}}</a></td>
-          <td><a href="/answers/{{.FileId}}" title="View Answer">{{.Answer}}</a></td>
-          <td><a href="/answers/{{.FileId}}" title="View Answer">{{.Tags}}</a></td>
-          <td>
-            <a class="btn btn-default btn-sm" href="/answers/edit/{{.FileId}}" title="Edit Answer">
-              <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+
+  <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+    {{range $i, $a := .Answers}}
+      <div class="panel panel-default">
+        <div class="panel-heading" role="tab" id="heading{{$a.FileId}}">
+          <h4 class="panel-title">
+            <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse{{$a.FileId}}" 
+              aria-expanded="true" aria-controls="collapse{{$a.FileId}}">
+              {{$a.Question}}
             </a>
-            <a class="btn btn-default btn-sm" href="/answers/delete/{{.FileId}}" title="Delete Answer">
-              <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
-            </a>
-          </td>
-        </tr>
+          </h4>
+        </div>
+        <div id="collapse{{$a.FileId}}" class="panel-collapse {{$i | panelClass}}" role="tabpanel" aria-labelledby="heading{{$a.FileId}}">
+          <div class="panel-body">
+            <p>
+              {{$a.Answer}}
+            </p>
+            </p>
+              Tags: {{$a.Tags}}
+            </p>
+            {{ with $.CurrentUser }}
+              <a class="btn btn-default btn-sm" href="/answers/edit/{{$a.FileId}}" title="Edit Answer">
+                <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+              </a>
+              <a class="btn btn-default btn-sm" href="/answers/delete/{{$a.FileId}}" title="Delete Answer">
+                <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
+              </a>
+            {{ end }}
+          </div>
+        </div>
+      </div>
+    {{else}}
+      {{if .SearchTagsString}} 
+        <div class="alert alert-danger" role="alert">
+          <h4>No answers were found for the tags you entered.</h4>
+        </div>
       {{end}}
-    </tbody>
-  </table>
-  {{ with .CurrentUser }}
+    {{end}}
+  </div>
+
+  {{with .CurrentUser}}
     <a class="btn btn-default" href="/answers/new">New Answer</a>
-  {{ end }}
-  {{ if .CurrentUserAdmin }}
+  {{end}}
+
+  {{if .CurrentUserAdmin}}
     <a class="btn btn-default" href="/users">Users</a>
-  {{ end }}
+  {{end}}
 {{end}}
 
