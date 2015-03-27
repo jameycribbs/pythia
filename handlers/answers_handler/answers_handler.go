@@ -19,6 +19,7 @@ type IndexTemplateData struct {
 	DontShowLoginLink bool
 	CurrentUserAdmin  bool
 	CsrfToken         string
+	AvailableTags     []string
 }
 
 type TemplateData struct {
@@ -50,6 +51,8 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 		}}
 
 	templateData := IndexTemplateData{}
+
+	templateData.AvailableTags = gv.MyDB.AvailableAnswerTags
 
 	templateData.CurrentUser = currentUser
 

@@ -6,13 +6,14 @@ import (
 )
 
 type DB struct {
-	path            string
-	answersPath     string
-	answersLock     *sync.RWMutex
-	usersPath       string
-	usersLock       *sync.RWMutex
-	answerTagsIndex map[string][]string
-	userLoginsIndex map[string]string
+	path                string
+	answersPath         string
+	answersLock         *sync.RWMutex
+	usersPath           string
+	usersLock           *sync.RWMutex
+	answerTagsIndex     map[string][]string
+	userLoginsIndex     map[string]string
+	AvailableAnswerTags []string
 }
 
 func OpenDB(dbPath string) (*DB, error) {
@@ -41,6 +42,8 @@ func OpenDB(dbPath string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	db.initAvailableAnswerTags()
 
 	db.userLoginsIndex = make(map[string]string)
 

@@ -138,6 +138,8 @@ func (db *DB) SaveAnswer(answer *Answer) (string, error) {
 		return "", err
 	}
 
+	db.initAvailableAnswerTags()
+
 	return answer.FileId, nil
 }
 
@@ -163,12 +165,27 @@ func (db *DB) DeleteAnswer(fileId string) error {
 		return err
 	}
 
+	db.initAvailableAnswerTags()
+
 	return nil
 }
 
 //=============================================================================
 // Private Answer Methods
 //=============================================================================
+
+/*---------- initAvailableAnswerTags ----------*/
+func (db *DB) initAvailableAnswerTags() {
+	db.AvailableAnswerTags = make([]string, len(db.answerTagsIndex))
+
+	i := 0
+	for k := range db.answerTagsIndex {
+		db.AvailableAnswerTags[i] = k
+		i += 1
+	}
+
+	sort.Strings(db.AvailableAnswerTags)
+}
 
 /*---------- initAnswerTagsIndex ----------*/
 func (db *DB) initAnswerTagsIndex() error {

@@ -29,6 +29,7 @@
           <div class="panel-body">
             {{$a.Answer}}
             {{ with $.CurrentUser }}
+              <br />
               <a class="btn btn-default" href="/answers/edit/{{$a.FileId}}" title="Edit Answer">
                 <span class="glyphicon glyphicon-edit" aria-hidden="true"> Edit</span>
               </a>
@@ -49,6 +50,17 @@
         </div>
       {{end}}
     {{end}}
+  </div>
+
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h3 class="panel-title">Available Tags to Use in Search</h3>
+    </div>
+    <div class="panel-body">
+      {{range .AvailableTags}}
+        <span class='label label-default'>{{.}}</span>
+      {{end}}
+    </div>
   </div>
 
   {{with .CurrentUser}}
