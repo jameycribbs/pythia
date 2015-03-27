@@ -19,19 +19,6 @@
           &nbsp;Clear Filter
         </a>
       </form>
-      {{ with .CurrentUser }}
-        <p class="text-right">
-          <span class="label label-primary">{{.Name}}</span> 
-          <a href="/logout">Logout</a>
-        </p>
-      {{else}}
-        {{ if .DontShowLoginLink }}
-        {{ else }}
-          <p class="text-right">
-            <a href="/logins/new">Login</a>
-          </p>
-        {{ end }}
-      {{ end }}
     </div>
   </nav>
   <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">

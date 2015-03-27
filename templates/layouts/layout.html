@@ -16,6 +16,23 @@
     <script src="/static/js/bootstrap.min.js"></script>
     <div class="container">
       {{template "body" .}}
+      <nav class="navbar navbar-default navbar-fixed-bottom">
+        <div class="container">
+          {{ with .CurrentUser }}
+            <p class="navbar-text navbar-right">
+              <span class="label label-primary">{{.Name}}</span> 
+              <a href="/logout" class="navbar-link">Logout</a>
+            </p>
+          {{else}}
+            {{ if .DontShowLoginLink }}
+            {{ else }}
+              <p class="navbar-text navbar-right">
+                <a href="/logins/new" class="navbar-link">Login</a>
+              </p>
+            {{ end }}
+          {{ end }}
+        </div>
+      </nav>
     </div>
   </body>
 </html>
