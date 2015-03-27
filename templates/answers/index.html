@@ -7,7 +7,7 @@
       <form class="navbar-form navbar-left" role="search" action="/answers/search" method="POST">
         <input type="hidden" name="csrf_token" value="{{ .CsrfToken }}">
         <div class="form-group">
-          <input type="text" class="form-control col-xs-4" id="searchTags" name="searchTags" value="{{.SearchTagsString}}" 
+          <input type="text" class="form-control" id="searchTags" name="searchTags" value="{{.SearchTagsString}}" 
            placeholder="Enter tags to search for...">
         </div>
         <button type="submit" class="btn btn-primary">
