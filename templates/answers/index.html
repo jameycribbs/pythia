@@ -6,18 +6,18 @@
       <a class="navbar-brand" href="/">Pythia</a>
       <form class="navbar-form navbar-left" role="search" action="/answers/search" method="POST">
         <input type="hidden" name="csrf_token" value="{{ .CsrfToken }}">
-        <div class="form-group">
+        <div class="input-group">
+          <span class="input-group-btn">
+            <a class="btn btn-primary" href="/answers">
+              <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
+            </a>
+          </span>
           <input type="text" class="form-control" id="searchTags" name="searchTags" value="{{.SearchTagsString}}" 
            placeholder="Enter tags to search for...">
+          <span class="input-group-btn">
+            <button type="submit" class="btn btn-primary">Go!</button>
+          </span>
         </div>
-        <button type="submit" class="btn btn-primary">
-          <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-          &nbsp;Search
-        </button>
-        <a class="btn btn-default" href="/answers">
-          <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
-          &nbsp;Clear Filter
-        </a>
       </form>
     </div>
   </nav>
