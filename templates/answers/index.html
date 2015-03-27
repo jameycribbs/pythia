@@ -16,7 +16,7 @@
 
   <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
     {{range $i, $a := .Answers}}
-      <div class="panel panel-default">
+      <div class="panel panel-info">
         <div class="panel-heading" role="tab" id="heading{{$a.FileId}}">
           <h4 class="panel-title">
             <a class="collapsed" data-toggle="collapse" data-parent="#accordion" href="#collapse{{$a.FileId}}" 
@@ -27,20 +27,18 @@
         </div>
         <div id="collapse{{$a.FileId}}" class="panel-collapse {{$i | panelClass}}" role="tabpanel" aria-labelledby="heading{{$a.FileId}}">
           <div class="panel-body">
-            <p>
-              {{$a.Answer}}
-            </p>
-            </p>
-              Tags: {{$a.Tags}}
-            </p>
+            {{$a.Answer}}
             {{ with $.CurrentUser }}
-              <a class="btn btn-default btn-sm" href="/answers/edit/{{$a.FileId}}" title="Edit Answer">
-                <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+              <a class="btn btn-default" href="/answers/edit/{{$a.FileId}}" title="Edit Answer">
+                <span class="glyphicon glyphicon-edit" aria-hidden="true"> Edit</span>
               </a>
-              <a class="btn btn-default btn-sm" href="/answers/delete/{{$a.FileId}}" title="Delete Answer">
-                <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
+              <a class="btn btn-default" href="/answers/delete/{{$a.FileId}}" title="Delete Answer">
+                <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"> Delete</span>
               </a>
             {{ end }}
+          </div>
+          <div class="panel-footer">
+            Tags: {{$a.Tags | tagBadges}}
           </div>
         </div>
       </div>

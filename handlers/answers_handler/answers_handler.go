@@ -8,6 +8,8 @@ import (
 	"html/template"
 	"net/http"
 	"path"
+	"strings"
+	"time"
 )
 
 type IndexTemplateData struct {
@@ -36,6 +38,15 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 			} else {
 				return "collapse"
 			}
+		},
+		"tagBadges": func(tagString string) template.HTML {
+			var formattedString string
+
+			for _, tag := range strings.Split(tagString, " ") {
+				formattedString = formattedString + "<span class='label label-primary'>" + tag + "</span> "
+			}
+
+			return template.HTML(formattedString)
 		}}
 
 	templateData := IndexTemplateData{}
@@ -107,7 +118,14 @@ func Create(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 		return
 	}
 
-	fileId, err := saveFormDataToDb(gv.MyDB, "", r)
+	question := r.FormValue("question")
+	answer := r.FormValue("answer")
+	tags := r.FormValue("tags")
+
+	rec := &db.Answer{Question: question, Answer: answer, Tags: tags, CreatedById: currentUser.FileId, CreatedAt: time.Now(),
+		UpdatedById: currentUser.FileId, UpdatedAt: time.Now()}
+
+	fileId, err := gv.MyDB.SaveAnswer(rec)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -139,8 +157,14 @@ func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 	}
 
 	fileId := r.FormValue("fileId")
+	question := r.FormValue("question")
+	answer := r.FormValue("answer")
+	tags := r.FormValue("tags")
 
-	_, err := saveFormDataToDb(gv.MyDB, fileId, r)
+	rec := &db.Answer{FileId: fileId, Question: question, Answer: answer, Tags: tags, UpdatedById: currentUser.FileId,
+		UpdatedAt: time.Now()}
+
+	_, err := gv.MyDB.SaveAnswer(rec)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -195,19 +219,4 @@ func renderTemplate(w http.ResponseWriter, templateName string, templateData *Te
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-}
-
-func saveFormDataToDb(myDB *db.DB, fileId string, r *http.Request) (string, error) {
-	question := r.FormValue("question")
-	answer := r.FormValue("answer")
-	tags := r.FormValue("tags")
-
-	rec := &db.Answer{FileId: fileId, Question: question, Answer: answer, Tags: tags}
-
-	returnedFileId, err := myDB.SaveAnswer(rec)
-	if err != nil {
-		return "", err
-	}
-
-	return returnedFileId, nil
 }

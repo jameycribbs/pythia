@@ -32,34 +32,44 @@ type Answer struct {
 /*---------- FindAnswers ----------*/
 func (db *DB) FindAnswers(searchString string) ([]*Answer, error) {
 	var answers []*Answer
-	var searchTags []string
+	var possibleMatchingFileIdsMap map[string]int
 
 	db.answersLock.RLock()
 	defer db.answersLock.RUnlock()
 
-	if len(searchString) == 0 {
-		for _, fileId := range db.fileIdsInAnswersDataDir() {
-			answer, err := db.loadAnswer(fileId)
-			if err != nil {
-				return nil, err
-			}
+	if len(searchString) != 0 {
+		searchTags := strings.Split(searchString, " ")
 
-			answers = append(answers, answer)
-		}
-	} else {
-		searchTags = strings.Split(searchString, " ")
+		// Need a map to hold possible file ids for answers whose tags include at least one of the search tags.
+		possibleMatchingFileIdsMap = make(map[string]int)
 
-		for fileId, tags := range db.answerTagsIndex {
-			found := true
-
-			for _, searchTag := range searchTags {
-				if !stringInSlice(searchTag, tags) {
-					found = false
-					break
+		// For each one of the search tags...
+		for _, tag := range searchTags {
+			// If the search tag is in the index...
+			if fileIds, ok := db.answerTagsIndex[tag]; ok {
+				// Loop through all the file ids that have that tag in the index...
+				for _, fileId := range fileIds {
+					// If we have already added that file id to the map of possible matching file ids, then just add 1 to the number of
+					// occurrences of that file id.
+					if numOfOccurences, ok := possibleMatchingFileIdsMap[fileId]; ok {
+						possibleMatchingFileIdsMap[fileId] = numOfOccurences + 1
+						// Otherwise, add the file id as a new key in the map of possible matching file ids and set the number of occurrences to 1.
+					} else {
+						possibleMatchingFileIdsMap[fileId] = 1
+					}
 				}
 			}
+		}
 
-			if found {
+		// How many search tags were entered?  We will use this number when we loop through all of the possible matches to determine if the
+		// possible match has a number of occurrences as the number of search tags.  If it does, that means that that possible match had
+		// all of the tags that we are searching for.
+		searchTagsLen := len(searchTags)
+
+		// Now, we only want the possible matching file ids that have a number of occurrences equal to the number of search tags.  If the
+		// number of occurrences is less, that means that that particular answer did not have all of the search tags in it's tag list.
+		for fileId, numOfOccurrences := range possibleMatchingFileIdsMap {
+			if numOfOccurrences == searchTagsLen {
 				answer, err := db.loadAnswer(fileId)
 				if err != nil {
 					return nil, err
@@ -93,9 +103,6 @@ func (db *DB) SaveAnswer(answer *Answer) (string, error) {
 
 		answer.FileId = fileId
 
-		//TODO Temp Code!!!
-		answer.CreatedById = "1"
-		answer.CreatedAt = time.Now()
 	} else {
 		// Is fileid valid?
 		_, err := strconv.Atoi(answer.FileId)
@@ -112,11 +119,6 @@ func (db *DB) SaveAnswer(answer *Answer) (string, error) {
 		answer.CreatedById = originalAnswer.CreatedById
 		answer.CreatedAt = originalAnswer.CreatedAt
 	}
-
-	//TODO Temp Code!!!
-	answer.UpdatedById = "1"
-
-	answer.UpdatedAt = time.Now()
 
 	marshalledAnswer, err := json.Marshal(answer)
 
@@ -170,19 +172,32 @@ func (db *DB) DeleteAnswer(fileId string) error {
 
 /*---------- initAnswerTagsIndex ----------*/
 func (db *DB) initAnswerTagsIndex() error {
+	// Delete all the entries in the index.
 	for k := range db.answerTagsIndex {
 		delete(db.answerTagsIndex, k)
 	}
 
+	// For every file in the data dir...
 	for _, f := range db.fileIdsInAnswersDataDir() {
+		// Load the file into an answer struct.
 		a, err := db.loadAnswer(f)
 		if err != nil {
 			return err
 		}
 
-		tags := strings.Split(a.Tags, " ")
-
-		db.answerTagsIndex[a.FileId] = tags
+		// For every tag in the answer...
+		for _, tag := range strings.Split(a.Tags, " ") {
+			// If the tag already exists as a key in the index...
+			if fileIds, ok := db.answerTagsIndex[tag]; ok {
+				// Add the file id to the list of ids for that tag, if it is not already in the list.
+				if !stringInSlice(a.FileId, fileIds) {
+					db.answerTagsIndex[tag] = append(fileIds, a.FileId)
+				}
+			} else {
+				// Otherwise, add the tag with associated new file id to the index.
+				db.answerTagsIndex[tag] = []string{a.FileId}
+			}
+		}
 	}
 
 	return nil
