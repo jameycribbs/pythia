@@ -1,19 +1,39 @@
 {{define "title"}}Pythia{{end}}
 
 {{define "body"}}
-  <h1>Pythia</h1>
-  <p>
-    <form class="form-inline" action="/answers/search" method="POST">
-      <input type="hidden" name="csrf_token" value="{{ .CsrfToken }}">
-      <div class="form-group">
-        <input type="text" class="form-control" id="searchTags" name="searchTags" value="{{.SearchTagsString}}" 
-         placeholder="Enter tags to search for...">
-      </div>
-      <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-search" aria-hidden="true"></span>&nbsp;Search</button>
-      <a class="btn btn-default" href="/answers"><span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>&nbsp;Clear Filter</a>
-    </form>
-  </p>
-
+  <nav class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="/">Pythia</a>
+      <form class="navbar-form navbar-left" role="search" action="/answers/search" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ .CsrfToken }}">
+        <div class="form-group">
+          <input type="text" class="form-control" id="searchTags" name="searchTags" value="{{.SearchTagsString}}" 
+           placeholder="Enter tags to search for...">
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+          &nbsp;Search
+        </button>
+        <a class="btn btn-default" href="/answers">
+          <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
+          &nbsp;Clear Filter
+        </a>
+      </form>
+      {{ with .CurrentUser }}
+        <p class="text-right">
+          <span class="label label-primary">{{.Name}}</span> 
+          <a href="/logout">Logout</a>
+        </p>
+      {{else}}
+        {{ if .DontShowLoginLink }}
+        {{ else }}
+          <p class="text-right">
+            <a href="/logins/new">Login</a>
+          </p>
+        {{ end }}
+      {{ end }}
+    </div>
+  </nav>
   <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
     {{range $i, $a := .Answers}}
       <div class="panel panel-info">
@@ -25,7 +45,8 @@
             </a>
           </h4>
         </div>
-        <div id="collapse{{$a.FileId}}" class="panel-collapse {{$i | panelClass}}" role="tabpanel" aria-labelledby="heading{{$a.FileId}}">
+        <div id="collapse{{$a.FileId}}" class="panel-collapse {{$i | panelClass}}" role="tabpanel" 
+          aria-labelledby="heading{{$a.FileId}}">
           <div class="panel-body">
             {{$a.Answer}}
             {{ with $.CurrentUser }}
