@@ -18,7 +18,12 @@
       {{.Rec.Answer}} 
     </div>
   </div>
-  <p>Tags: {{.Rec.Tags}}</p>
+  <p>
+    Tags: 
+    {{range .Rec.Tags}}
+      <span class='label label-primary'>{{.}}</span>
+    {{end}}
+  </p>
   <table class='table table-bordered table-striped'>
     <thead>
       <tr>
@@ -40,7 +45,6 @@
       </tr>
     </tbody>
   </table>
-  <p>Tags: {{.Rec.Tags}}</p>
   <p>
     <a class="btn btn-default" href="/answers/edit/{{.Rec.FileId}}">Edit</a>
     <a class="btn btn-default" href="/answers">Back</a>

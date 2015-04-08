@@ -2,8 +2,8 @@ package users_handler
 
 import (
 	"fmt"
-	"github.com/jameycribbs/pythia/db"
 	"github.com/jameycribbs/pythia/global_vars"
+	"github.com/jameycribbs/pythia/models"
 	"github.com/justinas/nosurf"
 	"html/template"
 	"net/http"
@@ -11,18 +11,20 @@ import (
 )
 
 type IndexTemplateData struct {
-	Users       []*db.User
-	CurrentUser *db.User
+	Users       []*models.User
+	CurrentUser *models.User
 }
 
 type TemplateData struct {
-	Rec               *db.User
-	CurrentUser       *db.User
+	Rec               *models.User
+	CurrentUser       *models.User
 	DontShowLoginLink bool
 	CsrfToken         string
 }
 
-func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_vars.GlobalVars, currentUser *models.User) {
+	var user models.User
+
 	if (currentUser == nil) || (currentUser.Level != "admin") {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
@@ -34,10 +36,20 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 
 	templateData.CurrentUser = currentUser
 
-	templateData.Users, err = gv.MyDB.FindUsers()
+	ids, err := gv.MyDB.FindAllIds("users")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	for _, id := range ids {
+		err = gv.MyDB.Find("users", &user, id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		templateData.Users = append(templateData.Users, &user)
 	}
 
 	lp := path.Join("templates", "layouts", "layout.html")
@@ -51,24 +63,26 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 	}
 }
 
-func View(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func View(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *models.User) {
 	if (currentUser == nil) || (currentUser.Level != "admin") {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
-	rec, err := gv.MyDB.FindUser(fileId)
+	var rec models.User
+
+	err := gv.MyDB.Find("users", &rec, fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	templateData := TemplateData{CurrentUser: currentUser, Rec: rec}
+	templateData := TemplateData{CurrentUser: currentUser, Rec: &rec}
 
 	renderTemplate(w, "view", &templateData)
 }
 
-func New(w http.ResponseWriter, r *http.Request, throwaway string, sv *global_vars.GlobalVars, currentUser *db.User) {
+func New(w http.ResponseWriter, r *http.Request, throwaway string, sv *global_vars.GlobalVars, currentUser *models.User) {
 	if (currentUser == nil) || (currentUser.Level != "admin") {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
@@ -79,39 +93,47 @@ func New(w http.ResponseWriter, r *http.Request, throwaway string, sv *global_va
 	renderTemplate(w, "new", &templateData)
 }
 
-func Create(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func Create(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *models.User) {
 	if (currentUser == nil) || (currentUser.Level != "admin") {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
-	fileId, err := saveFormDataToDb(gv.MyDB, "", r)
+	name := r.FormValue("name")
+	login := r.FormValue("login")
+	password := r.FormValue("password")
+	level := r.FormValue("level")
+
+	rec := models.User{Name: name, Login: login, Password: []byte(password), Level: level}
+
+	fileId, err := gv.MyDB.Create("users", rec)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/users/%v", fileId), http.StatusFound)
 }
 
-func Edit(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func Edit(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *models.User) {
+	var rec models.User
+
 	if (currentUser == nil) || (currentUser.Level != "admin") {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
-	rec, err := gv.MyDB.FindUser(fileId)
+	err := gv.MyDB.Find("users", &rec, fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	templateData := TemplateData{CurrentUser: currentUser, Rec: rec, CsrfToken: nosurf.Token(r)}
+	templateData := TemplateData{CurrentUser: currentUser, Rec: &rec, CsrfToken: nosurf.Token(r)}
 
 	renderTemplate(w, "edit", &templateData)
 }
 
-func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *models.User) {
 	if (currentUser == nil) || (currentUser.Level != "admin") {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
@@ -119,7 +141,14 @@ func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 
 	fileId := r.FormValue("fileId")
 
-	_, err := saveFormDataToDb(gv.MyDB, fileId, r)
+	name := r.FormValue("name")
+	login := r.FormValue("login")
+	password := r.FormValue("password")
+	level := r.FormValue("level")
+
+	rec := models.User{FileId: fileId, Name: name, Login: login, Password: []byte(password), Level: level}
+
+	err := gv.MyDB.Update("users", rec, fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -128,24 +157,26 @@ func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 	http.Redirect(w, r, fmt.Sprintf("/users/%v", fileId), http.StatusFound)
 }
 
-func Delete(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func Delete(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *models.User) {
+	var rec models.User
+
 	if (currentUser == nil) || (currentUser.Level != "admin") {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
-	rec, err := gv.MyDB.FindUser(fileId)
+	err := gv.MyDB.Find("users", &rec, fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	templateData := TemplateData{CurrentUser: currentUser, Rec: rec, CsrfToken: nosurf.Token(r)}
+	templateData := TemplateData{CurrentUser: currentUser, Rec: &rec, CsrfToken: nosurf.Token(r)}
 
 	renderTemplate(w, "delete", &templateData)
 }
 
-func Destroy(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func Destroy(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *models.User) {
 	if (currentUser == nil) || (currentUser.Level != "admin") {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
@@ -153,7 +184,7 @@ func Destroy(w http.ResponseWriter, r *http.Request, throwaway string, gv *globa
 
 	fileId := r.FormValue("fileId")
 
-	err := gv.MyDB.DeleteUser(fileId)
+	err := gv.MyDB.Delete("users", fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -175,20 +206,4 @@ func renderTemplate(w http.ResponseWriter, templateName string, templateData *Te
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-}
-
-func saveFormDataToDb(myDB *db.DB, fileId string, r *http.Request) (string, error) {
-	name := r.FormValue("name")
-	login := r.FormValue("login")
-	password := r.FormValue("password")
-	level := r.FormValue("level")
-
-	rec := &db.User{FileId: fileId, Name: name, Login: login, Password: []byte(password), Level: level}
-
-	returnedFileId, err := myDB.SaveUser(rec)
-	if err != nil {
-		return "", err
-	}
-
-	return returnedFileId, nil
 }

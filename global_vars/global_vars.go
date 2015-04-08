@@ -2,10 +2,10 @@ package global_vars
 
 import (
 	"github.com/gorilla/sessions"
-	"github.com/jameycribbs/pythia/db"
+	"github.com/jameycribbs/ivy"
 )
 
 type GlobalVars struct {
-	MyDB         *db.DB
+	MyDB         *ivy.DB
 	SessionStore *sessions.CookieStore
 }

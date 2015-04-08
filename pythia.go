@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"github.com/jameycribbs/pythia/db"
+	"github.com/jameycribbs/ivy"
 	"github.com/jameycribbs/pythia/global_vars"
 	"github.com/jameycribbs/pythia/handlers/answers_handler"
 	"github.com/jameycribbs/pythia/handlers/logins_handler"
 	"github.com/jameycribbs/pythia/handlers/users_handler"
+	"github.com/jameycribbs/pythia/models"
 	"github.com/justinas/nosurf"
 	"net/http"
 	"os"
@@ -28,10 +29,15 @@ func main() {
 		port = ":8080"
 	}
 
-	db, err := db.OpenDB("data")
+	fieldsToIndex := make(map[string][]string)
+	fieldsToIndex["answers"] = []string{"tags"}
+
+	db, err := ivy.OpenDB("data", fieldsToIndex)
 	if err != nil {
 		fmt.Println("Database initialization failed:", err)
 	}
+
+	defer db.Close()
 
 	store := sessions.NewCookieStore([]byte("pythia-is-awesome"))
 
@@ -80,7 +86,7 @@ func failHand(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", nosurf.Reason(r))
 }
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, string, *global_vars.GlobalVars, *db.User),
+func makeHandler(fn func(http.ResponseWriter, *http.Request, string, *global_vars.GlobalVars, *models.User),
 	gv *global_vars.GlobalVars) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +102,9 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string, *global_var
 	}
 }
 
-func getCurrentUser(r *http.Request, gv *global_vars.GlobalVars) (*db.User, error) {
+func getCurrentUser(r *http.Request, gv *global_vars.GlobalVars) (*models.User, error) {
+	var user models.User
+
 	session, _ := gv.SessionStore.Get(r, "pythia")
 
 	userId, ok := session.Values["user"]
@@ -105,10 +113,10 @@ func getCurrentUser(r *http.Request, gv *global_vars.GlobalVars) (*db.User, erro
 		return nil, nil
 	}
 
-	user, err := gv.MyDB.FindUser(userId.(string))
+	err := gv.MyDB.Find("users", &user, userId.(string))
 	if err != nil {
 		return nil, err
 	}
 
-	return user, nil
+	return &user, nil
 }

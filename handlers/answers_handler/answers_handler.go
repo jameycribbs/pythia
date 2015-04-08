@@ -2,8 +2,8 @@ package answers_handler
 
 import (
 	"fmt"
-	"github.com/jameycribbs/pythia/db"
 	"github.com/jameycribbs/pythia/global_vars"
+	"github.com/jameycribbs/pythia/models"
 	"github.com/justinas/nosurf"
 	"html/template"
 	"net/http"
@@ -14,24 +14,22 @@ import (
 
 type IndexTemplateData struct {
 	SearchTagsString  string
-	Answers           []*db.Answer
-	CurrentUser       *db.User
+	Answers           []*models.Answer
+	CurrentUser       *models.User
 	DontShowLoginLink bool
 	CurrentUserAdmin  bool
 	CsrfToken         string
-	AvailableTags     []string
 }
 
 type TemplateData struct {
-	Rec               *db.Answer
-	CurrentUser       *db.User
+	Rec               *models.Answer
+	CurrentUser       *models.User
 	DontShowLoginLink bool
 	CsrfToken         string
 }
 
-func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_vars.GlobalVars, currentUser *models.User) {
 	var err error
-
 	funcMap := template.FuncMap{
 		"panelClass": func(i int) string {
 			if i == 0 {
@@ -39,20 +37,9 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 			} else {
 				return "collapse"
 			}
-		},
-		"tagBadges": func(tagString string) template.HTML {
-			var formattedString string
-
-			for _, tag := range strings.Split(tagString, " ") {
-				formattedString = formattedString + "<span class='label label-primary'>" + tag + "</span> "
-			}
-
-			return template.HTML(formattedString)
 		}}
 
 	templateData := IndexTemplateData{}
-
-	templateData.AvailableTags = gv.MyDB.AvailableAnswerTags
 
 	templateData.CurrentUser = currentUser
 
@@ -65,10 +52,22 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 	if r.FormValue("searchTags") != "" {
 		templateData.SearchTagsString = r.FormValue("searchTags")
 
-		templateData.Answers, err = gv.MyDB.FindAnswers(templateData.SearchTagsString)
+		ids, err := gv.MyDB.FindAllIdsForTags("answers", strings.Split(templateData.SearchTagsString, " "))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		for _, id := range ids {
+			answer := new(models.Answer)
+
+			err = gv.MyDB.Find("answers", answer, id)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			templateData.Answers = append(templateData.Answers, answer)
 		}
 	}
 
@@ -92,19 +91,26 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 	}
 }
 
-func View(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
-	rec, err := gv.MyDB.FindAnswer(fileId)
+func View(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *models.User) {
+	if currentUser == nil {
+		http.Redirect(w, r, "/answers", http.StatusFound)
+		return
+	}
+
+	var rec models.Answer
+
+	err := gv.MyDB.Find("answers", &rec, fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	templateData := TemplateData{CurrentUser: currentUser, Rec: rec}
+	templateData := TemplateData{CurrentUser: currentUser, Rec: &rec}
 
 	renderTemplate(w, "view", &templateData)
 }
 
-func New(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func New(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *models.User) {
 	if currentUser == nil {
 		http.Redirect(w, r, "/answers", http.StatusFound)
 		return
@@ -115,7 +121,7 @@ func New(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_va
 	renderTemplate(w, "new", &templateData)
 }
 
-func Create(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func Create(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *models.User) {
 	if currentUser == nil {
 		http.Redirect(w, r, "/answers", http.StatusFound)
 		return
@@ -125,35 +131,36 @@ func Create(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 	answer := r.FormValue("answer")
 	tags := r.FormValue("tags")
 
-	rec := &db.Answer{Question: question, Answer: answer, Tags: tags, CreatedById: currentUser.FileId, CreatedAt: time.Now(),
-		UpdatedById: currentUser.FileId, UpdatedAt: time.Now()}
+	rec := models.Answer{Question: question, Answer: answer, Tags: strings.Split(tags, " "), CreatedById: currentUser.FileId,
+		CreatedAt: time.Now(), UpdatedById: currentUser.FileId, UpdatedAt: time.Now()}
 
-	fileId, err := gv.MyDB.SaveAnswer(rec)
+	fileId, err := gv.MyDB.Create("answers", rec)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/answers/%v", fileId), http.StatusFound)
 }
 
-func Edit(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func Edit(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *models.User) {
 	if currentUser == nil {
 		http.Redirect(w, r, "/answers", http.StatusFound)
 		return
 	}
 
-	rec, err := gv.MyDB.FindAnswer(fileId)
+	var rec models.Answer
+
+	err := gv.MyDB.Find("answers", &rec, fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	templateData := TemplateData{CurrentUser: currentUser, Rec: rec, CsrfToken: nosurf.Token(r)}
+	templateData := TemplateData{CurrentUser: currentUser, Rec: &rec, CsrfToken: nosurf.Token(r)}
 	renderTemplate(w, "edit", &templateData)
 }
 
-func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *models.User) {
 	if currentUser == nil {
 		http.Redirect(w, r, "/answers", http.StatusFound)
 		return
@@ -164,10 +171,10 @@ func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 	answer := r.FormValue("answer")
 	tags := r.FormValue("tags")
 
-	rec := &db.Answer{FileId: fileId, Question: question, Answer: answer, Tags: tags, UpdatedById: currentUser.FileId,
-		UpdatedAt: time.Now()}
+	rec := models.Answer{FileId: fileId, Question: question, Answer: answer, Tags: strings.Split(tags, ""),
+		UpdatedById: currentUser.FileId, UpdatedAt: time.Now()}
 
-	_, err := gv.MyDB.SaveAnswer(rec)
+	err := gv.MyDB.Update("answers", rec, fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -176,23 +183,25 @@ func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 	http.Redirect(w, r, fmt.Sprintf("/answers/%v", fileId), http.StatusFound)
 }
 
-func Delete(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func Delete(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars.GlobalVars, currentUser *models.User) {
 	if currentUser == nil {
 		http.Redirect(w, r, "/answers", http.StatusFound)
 		return
 	}
 
-	rec, err := gv.MyDB.FindAnswer(fileId)
+	var rec models.Answer
+
+	err := gv.MyDB.Find("answers", &rec, fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	templateData := TemplateData{CurrentUser: currentUser, Rec: rec, CsrfToken: nosurf.Token(r)}
+	templateData := TemplateData{CurrentUser: currentUser, Rec: &rec, CsrfToken: nosurf.Token(r)}
 	renderTemplate(w, "delete", &templateData)
 }
 
-func Destroy(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *db.User) {
+func Destroy(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *models.User) {
 	if currentUser == nil {
 		http.Redirect(w, r, "/answers", http.StatusFound)
 		return
@@ -200,7 +209,7 @@ func Destroy(w http.ResponseWriter, r *http.Request, throwaway string, gv *globa
 
 	fileId := r.FormValue("fileId")
 
-	err := gv.MyDB.DeleteAnswer(fileId)
+	err := gv.MyDB.Delete("answers", fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

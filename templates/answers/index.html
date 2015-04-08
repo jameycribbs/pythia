@@ -47,7 +47,10 @@
             {{ end }}
           </div>
           <div class="panel-footer">
-            Tags: {{$a.Tags | tagBadges}}
+            Tags: 
+            {{range $a.Tags}}
+            <span class='label label-primary'>{{.}}</span>
+            {{end}}
           </div>
         </div>
       </div>
@@ -58,17 +61,6 @@
         </div>
       {{end}}
     {{end}}
-  </div>
-
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <h3 class="panel-title">Available Tags to Use in Search</h3>
-    </div>
-    <div class="panel-body">
-      {{range .AvailableTags}}
-        <span class='label label-default'>{{.}}</span>
-      {{end}}
-    </div>
   </div>
 
   {{with .CurrentUser}}
