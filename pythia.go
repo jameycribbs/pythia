@@ -31,6 +31,7 @@ func main() {
 
 	fieldsToIndex := make(map[string][]string)
 	fieldsToIndex["answers"] = []string{"tags"}
+	fieldsToIndex["users"] = []string{"login"}
 
 	db, err := ivy.OpenDB("data", fieldsToIndex)
 	if err != nil {

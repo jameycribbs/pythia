@@ -23,8 +23,6 @@ type TemplateData struct {
 }
 
 func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_vars.GlobalVars, currentUser *models.User) {
-	var user models.User
-
 	if (currentUser == nil) || (currentUser.Level != "admin") {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
@@ -43,6 +41,8 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 	}
 
 	for _, id := range ids {
+		user := models.User{}
+
 		err = gv.MyDB.Find("users", &user, id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

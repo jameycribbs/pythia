@@ -59,15 +59,15 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 		}
 
 		for _, id := range ids {
-			answer := new(models.Answer)
+			answer := models.Answer{}
 
-			err = gv.MyDB.Find("answers", answer, id)
+			err = gv.MyDB.Find("answers", &answer, id)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 
-			templateData.Answers = append(templateData.Answers, answer)
+			templateData.Answers = append(templateData.Answers, &answer)
 		}
 	}
 
