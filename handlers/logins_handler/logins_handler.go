@@ -1,6 +1,7 @@
 package logins_handler
 
 import (
+	"fmt"
 	"github.com/jameycribbs/pythia/global_vars"
 	"github.com/jameycribbs/pythia/models"
 	"github.com/justinas/nosurf"
@@ -63,6 +64,9 @@ func loginUser(login string, password string, gv *global_vars.GlobalVars) (model
 	if err != nil {
 		return user, err
 	}
+
+	fmt.Println(user)
+	fmt.Println(password)
 
 	err = bcrypt.CompareHashAndPassword(user.Password, []byte(password))
 	if err != nil {

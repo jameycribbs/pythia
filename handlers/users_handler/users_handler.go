@@ -5,6 +5,7 @@ import (
 	"github.com/jameycribbs/pythia/global_vars"
 	"github.com/jameycribbs/pythia/models"
 	"github.com/justinas/nosurf"
+	"golang.org/x/crypto/bcrypt"
 	"html/template"
 	"net/http"
 	"path"
@@ -101,8 +102,12 @@ func Create(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 
 	name := r.FormValue("name")
 	login := r.FormValue("login")
-	password := r.FormValue("password")
 	level := r.FormValue("level")
+
+	password, err := bcrypt.GenerateFromPassword([]byte(r.FormValue("password")), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 
 	rec := models.User{Name: name, Login: login, Password: []byte(password), Level: level}
 
