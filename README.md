@@ -13,8 +13,11 @@ go get github.com/jameycribbs/pythia
 - go get any dependencies
 - create a data directory and two subdirectories (answers and users) in the directory from where you are going to run pythia
 - go build pythia.go
+- in the directory where you are going to run the pythia executable, create a "data" directory and two subdirectories "data/answers" and "data/users"
+- copy the "1.json" file to the "data/users" directory
 - run the pythia executable that you just built
-- the new user screen will appear.  enter the user info and make sure you put "admin" in the level field.  save this record.
+- point your browser to http://localhost:8080
+
 
 ### How to use
 
