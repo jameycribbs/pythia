@@ -20,7 +20,9 @@ go get github.com/jameycribbs/pythia
 
 ### How to use
 
-To add questions and answers, you will need to be logged in as an admin.  Once you have added some records, anyone can go to the front page and key in one or more tags to search for answers.  Only records that have ALL of the tags that are being searched for will show up in the search results.
+To add questions and answers, you will need to be logged in as an admin. You can initially login as login "login" and password "password".  This test user is an admin user which will allow you to go create a real admin user.  Make sure you put "admin" in the level field when creating your own user.  Once you have created your own admin user, you need to go back and delete the test user.
+ 
+Once you have added some records, anyone can go to the front page and key in one or more tags to search for answers.  Only records that have ALL of the tags that are being searched for will show up in the search results.
 
 ### Contributions welcome!
 
