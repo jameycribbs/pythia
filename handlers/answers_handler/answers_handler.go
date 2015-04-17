@@ -150,6 +150,11 @@ func Edit(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars
 
 	var rec models.Answer
 
+	funcMap := template.FuncMap{
+		"tagsString": func(tags []string) string {
+			return strings.Join(tags, " ")
+		}}
+
 	err := gv.MyDB.Find("answers", &rec, fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -157,7 +162,19 @@ func Edit(w http.ResponseWriter, r *http.Request, fileId string, gv *global_vars
 	}
 
 	templateData := TemplateData{CurrentUser: currentUser, Rec: &rec, CsrfToken: nosurf.Token(r)}
-	renderTemplate(w, "edit", &templateData)
+
+	lp := path.Join("templates", "layouts", "layout.html")
+	fp := path.Join("templates", "answers", "edit.html")
+
+	tmpl := template.New("edt").Funcs(funcMap)
+
+	tmpl, err = tmpl.ParseFiles(lp, fp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.ExecuteTemplate(w, "layout", templateData)
 }
 
 func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global_vars.GlobalVars, currentUser *models.User) {
