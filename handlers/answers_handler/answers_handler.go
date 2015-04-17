@@ -171,7 +171,7 @@ func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 	answer := r.FormValue("answer")
 	tags := r.FormValue("tags")
 
-	rec := models.Answer{FileId: fileId, Question: question, Answer: answer, Tags: strings.Split(tags, ""),
+	rec := models.Answer{FileId: fileId, Question: question, Answer: answer, Tags: strings.Split(tags, " "),
 		UpdatedById: currentUser.FileId, UpdatedAt: time.Now()}
 
 	err := gv.MyDB.Update("answers", rec, fileId)
