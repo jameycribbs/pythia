@@ -29,7 +29,9 @@ type TemplateData struct {
 }
 
 func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_vars.GlobalVars, currentUser *models.User) {
+	var ids []string
 	var err error
+
 	funcMap := template.FuncMap{
 		"panelClass": func(i int) string {
 			if i == 0 {
@@ -52,7 +54,12 @@ func Index(w http.ResponseWriter, r *http.Request, throwAway string, gv *global_
 	if r.FormValue("searchTags") != "" {
 		templateData.SearchTagsString = r.FormValue("searchTags")
 
-		ids, err := gv.MyDB.FindAllIdsForTags("answers", strings.Split(templateData.SearchTagsString, " "))
+		if r.FormValue("searchTags") == "all" {
+			ids, err = gv.MyDB.FindAllIds("answers")
+		} else {
+			ids, err = gv.MyDB.FindAllIdsForTags("answers", strings.Split(templateData.SearchTagsString, " "))
+		}
+
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
