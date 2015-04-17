@@ -183,15 +183,23 @@ func Update(w http.ResponseWriter, r *http.Request, throwaway string, gv *global
 		return
 	}
 
+	var rec models.Answer
+
 	fileId := r.FormValue("fileId")
 	question := r.FormValue("question")
 	answer := r.FormValue("answer")
 	tags := r.FormValue("tags")
 
-	rec := models.Answer{FileId: fileId, Question: question, Answer: answer, Tags: strings.Split(tags, " "),
-		UpdatedById: currentUser.FileId, UpdatedAt: time.Now()}
+	err := gv.MyDB.Find("answers", &rec, fileId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	err := gv.MyDB.Update("answers", rec, fileId)
+	rec = models.Answer{FileId: fileId, Question: question, Answer: answer, Tags: strings.Split(tags, " "),
+		UpdatedById: currentUser.FileId, UpdatedAt: time.Now(), CreatedById: rec.CreatedById, CreatedAt: rec.CreatedAt}
+
+	err = gv.MyDB.Update("answers", rec, fileId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
