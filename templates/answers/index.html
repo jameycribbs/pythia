@@ -38,10 +38,10 @@
             {{$a.Answer}}
             {{ with $.CurrentUser }}
               <br />
-              <a class="btn btn-default" href="/answers/edit/{{$a.FileId}}" title="Edit Answer">
+              <a class="btn btn-default" href="/answers/{{$a.FileId}}/edit" title="Edit Answer">
                 <span class="glyphicon glyphicon-edit" aria-hidden="true"> Edit</span>
               </a>
-              <a class="btn btn-default" href="/answers/delete/{{$a.FileId}}" title="Delete Answer">
+              <a class="btn btn-default" href="/answers/{{$a.FileId}}/delete" title="Delete Answer">
                 <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"> Delete</span>
               </a>
             {{ end }}
